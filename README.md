@@ -26,6 +26,32 @@ python3 locate-search.py
 
 The window opens maximized with native window controls.
 
+## Debian package
+
+Version: **2026.0.10.19**
+
+Build without sudo (Python standard library and `dpkg-deb` only):
+
+```sh
+python3 build_deb.py
+```
+
+The package is written to `dist/locate-search_2026.0.10.19_all.deb`.
+It contains architecture-independent Python code and declares dependencies on
+Python 3.10+, Tkinter, plocate, and xdg-utils.
+
+```sh
+sudo apt install ./dist/locate-search_2026.0.10.19_all.deb
+locate-search
+```
+
+The package installs `/usr/bin/locate-search` and an Applications-menu entry.
+It does not alter your keyboard shortcuts, desktop icons, index configuration,
+or user preferences. For packaged installations, set your custom shortcut
+command to `/usr/bin/locate-search`. Existing user launchers created by
+`install.py` still point to the checkout and override the system menu entry;
+they are deliberately not removed automatically.
+
 ## Desktop installation
 
 Keep this checkout in its permanent location, then run:
@@ -93,7 +119,7 @@ binding: **Ctrl+Shift+Alt+F**. Do not overwrite another application's binding.
 Run from the checkout in a graphical desktop session:
 
 ```sh
-python3 -B -W error -m unittest -v test_locate_search test_install
+python3 -B -W error -m unittest -v test_locate_search test_install test_build_deb
 python3 -B locate-search.py --self-test
 ```
 
