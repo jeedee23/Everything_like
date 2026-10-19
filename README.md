@@ -30,6 +30,24 @@ The window opens maximized with native window controls.
 
 Version: **2026.0.10.19**
 
+### Download and install
+
+Open the [latest release](https://github.com/jeedee23/Everything_like/releases/latest)
+and download the `.deb` and `SHA256SUMS`. For this version:
+
+- [locate-search_2026.0.10.19_all.deb](https://github.com/jeedee23/Everything_like/releases/download/V2026.0.10.19/locate-search_2026.0.10.19_all.deb)
+- [SHA256SUMS](https://github.com/jeedee23/Everything_like/releases/download/V2026.0.10.19/SHA256SUMS)
+
+From the directory containing both downloads:
+
+```sh
+sha256sum -c SHA256SUMS
+sudo apt install ./locate-search_2026.0.10.19_all.deb
+locate-search
+```
+
+### Build from source
+
 Build without sudo (Python standard library and `dpkg-deb` only):
 
 ```sh
