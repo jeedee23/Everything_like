@@ -66,7 +66,8 @@ locate-search
 The package installs `/usr/bin/locate-search` and an Applications-menu entry.
 It does not alter your keyboard shortcuts, desktop icons, index configuration,
 or user preferences. For packaged installations, set your custom shortcut
-command to `/usr/bin/locate-search`. Existing user launchers created by
+command to `/usr/bin/locate-search`, or run `python3 install.py` from a permanent
+checkout to install the per-user launchers and GNOME shortcut. Existing user launchers created by
 `install.py` still point to the checkout and override the system menu entry;
 they are deliberately not removed automatically.
 
@@ -80,11 +81,17 @@ python3 install.py
 
 This creates an Applications-menu entry and a desktop launcher for the current
 user. It points to this checkout, so moving the checkout requires rerunning the
-installer. It does not install packages, require sudo, or modify keyboard
-shortcuts. On GNOME, right-click the desktop icon and choose **Allow Launching**
+installer. On GNOME it also registers **Ctrl+Shift+Alt+F** for the current user.
+Rerunning it does not duplicate the shortcut. Other custom shortcuts are preserved;
+if another custom command uses that binding or the installer's shortcut path,
+installation reports a conflict rather than overwriting it. Locked settings and
+gsettings failures are reported explicitly. It does not install packages or require sudo.
+On GNOME, right-click the desktop icon and choose **Allow Launching**
 if prompted.
 
-For a global shortcut, open GNOME **Settings > Keyboard > Custom Shortcuts**,
+On other desktops, automatic shortcut setup is skipped with a message; configure
+the printed command using your desktop's shortcut settings. To configure it manually
+on GNOME, open **Settings > Keyboard > Custom Shortcuts**,
 add **Locate Search**, and use the command printed by the installer. Suggested
 binding: **Ctrl+Shift+Alt+F**. Do not overwrite another application's binding.
 
@@ -112,6 +119,20 @@ binding: **Ctrl+Shift+Alt+F**. Do not overwrite another application's binding.
   Ubuntu Mono, Ubuntu Sans Mono. Missing fonts are disabled; the app installs
   none. Rows expand when necessary to accommodate the font.
 - Subtle grey row/column gridlines separate results.
+- **Edit > Preferences > Theme** offers Light (default), Grey and Dark.
+  Themes apply to controls, menus, search field, result rows and gridlines.
+- Results use a red-to-green relevance gradient: greener means a stronger match.
+  Each query term scores higher when it matches the filename rather than only
+  a parent path, and higher when it covers more of that filename. Scores are
+  averaged across AND terms, ignoring case and honoring the existing wildcards.
+  This is a relevance indicator, not a fuzzy search: matching rules are unchanged.
+  Selected rows retain a contrasting selection color.
+- Enable **Relevance** under **View > Columns** (or Preferences) to see scores as
+  percentages. Click its heading to sort best-first, then click again to reverse;
+  **View > Sort by > Relevance** is also available. Sorting uses unrounded scores
+  within the returned result limit, not the entire index.
+- Disable **Color results by relevance** in Preferences for plain themed rows.
+  Theme and relevance-color choices are saved across restarts.
 
 | Shortcut | Action |
 |---|---|
@@ -126,10 +147,25 @@ binding: **Ctrl+Shift+Alt+F**. Do not overwrite another application's binding.
 
 - The index is periodic, not a real-time filesystem watcher. Only indexed paths
   visible to the current user appear; results can be stale.
-- At most 2,000 results are shown; sorting applies to these results. All query
+- By default at most 2,000 results are shown (configurable in Preferences); sorting applies to these results. All query
   terms and category filters are applied before the limit.
 - Blank queries show a typing prompt, not every indexed file.
-- Preferences currently last for the app session.
+- **Edit > Preferences** configures font, size, minimum row height, visible columns,
+  default sort/order and filter, search-as-you-type, search delay (0–5000 ms),
+  and maximum results (1–100000). Enter in the search field or F5 always searches.
+  Apply saves and applies settings; OK also closes the dialog. Cancel discards
+  unapplied edits. Restore defaults fills the dialog with original defaults;
+  choose Apply or OK to save them.
+- Preferences are saved atomically in
+  `$XDG_CONFIG_HOME/locate-search/preferences.json` (normally
+  `~/.config/locate-search/preferences.json`) and loaded on startup. Invalid files
+  produce a status/stderr warning and use defaults; save failures are shown in
+  the dialog without applying changes. View/Search menus remain session overrides;
+  opening Preferences and applying saves the current choices.
+- Inspired by [Everything's documented Options](https://www.voidtools.com/support/everything/options/):
+  Home defaults, Search timing and Results/View appearance. This is not a full
+  implementation of Everything's options; Windows services, NTFS indexing,
+  tray/background operation and tabs are not provided.
 - Linux/Tk desktop support is required; Windows/macOS are not supported.
 
 ## Tests

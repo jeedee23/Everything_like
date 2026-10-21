@@ -1,11 +1,75 @@
 #!/usr/bin/env python3
-"""Create user launchers that run this checkout; no sudo required."""
+"""Create user launchers and a GNOME shortcut; no sudo required."""
 
+import ast
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
+
+
+def install_shortcut(command: str) -> None:
+    if "GNOME" not in os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":"):
+        print("Shortcut not installed: automatic setup requires a GNOME session.")
+        return
+    if shutil.which("gsettings") is None:
+        raise SystemExit("Shortcut not installed: gsettings is unavailable.")
+
+    schema = "org.gnome.settings-daemon.plugins.media-keys"
+    custom_schema = schema + ".custom-keybinding"
+    path = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/locate-search/"
+    binding = "<Control><Shift><Alt>f"
+
+    def setting(action: str, target: str, key: str, value: str | None = None) -> str:
+        arguments = ["gsettings", action, target, key]
+        if value is not None:
+            arguments.append(value)
+        return subprocess.run(
+            arguments, check=True, text=True, capture_output=True
+        ).stdout.strip()
+
+    def read(target: str, key: str) -> object:
+        value = setting("get", target, key)
+        return ast.literal_eval(value.removeprefix("@as "))
+
+    def normalized(value: str) -> tuple[tuple[str, ...], str]:
+        modifiers = value.lower().split(">")
+        aliases = {"ctrl": "control", "primary": "control", "mod1": "alt"}
+        return (
+            tuple(sorted(aliases.get(item.lstrip("<"), item.lstrip("<"))
+                         for item in modifiers[:-1])),
+            modifiers[-1],
+        )
+
+    paths = read(schema, "custom-keybindings")
+    if not isinstance(paths, list) or not all(isinstance(item, str) for item in paths):
+        raise SystemExit("Shortcut not installed: unexpected GNOME shortcut list.")
+    target = f"{custom_schema}:{path}"
+    for existing in dict.fromkeys([*paths, path]):
+        existing_target = f"{custom_schema}:{existing}"
+        existing_command = read(existing_target, "command")
+        existing_binding = read(existing_target, "binding")
+        if not isinstance(existing_binding, str):
+            raise SystemExit("Shortcut not installed: unexpected GNOME key binding.")
+        if existing == path and existing_command not in ("", command):
+            raise SystemExit("Shortcut not installed: Locate Search shortcut path is already in use.")
+        if (existing != path and normalized(existing_binding) == normalized(binding)
+                and existing_command != command):
+            raise SystemExit(
+                f"Shortcut not installed: Ctrl+Shift+Alt+F is already assigned at {existing}."
+            )
+
+    for owner, key in [(schema, "custom-keybindings"),
+                       (target, "name"), (target, "command"), (target, "binding")]:
+        if setting("writable", owner, key) != "true":
+            raise SystemExit(f"Shortcut not installed: GNOME setting {key} is locked.")
+    for key, value in [("name", "Locate Search"), ("command", command), ("binding", binding)]:
+        setting("set", target, key, repr(value))
+    if path not in paths:
+        setting("set", schema, "custom-keybindings", repr([*paths, path]))
+    print("Keyboard shortcut installed: Ctrl+Shift+Alt+F")
 
 
 def desktop_quote(value: str) -> str:
@@ -51,7 +115,9 @@ def main() -> None:
         print(f"Desktop launcher: {launcher}")
         print("If prompted, right-click the icon and choose Allow Launching.")
     print("Custom keyboard shortcut command:")
-    print(shlex.join([sys.executable, str(source)]))
+    shortcut_command = shlex.join([sys.executable, str(source)])
+    print(shortcut_command)
+    install_shortcut(shortcut_command)
 
 
 if __name__ == "__main__":
